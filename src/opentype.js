@@ -79,6 +79,40 @@ function loadFromUrl(url, callback) {
     request.send();
 }
 
+/**
+ * Loads a font from a URL & returns a promise which resolves to a font.
+ * @param {string} url - The URL of the font file.
+ * @returns {Promise<ArrayBuffer>}
+ */
+async function loadFromUrlAsync(url) {
+    try {
+        var request = await fetch(url, {
+            method: 'GET'
+        });
+        if (request.status != 200) {
+            throw new Error('Font could not be loaded: ' + request.status);
+        }
+        return await request.arrayBuffer();
+    } catch (err) {
+        throw new Error('Font could not be loaded: ' + err.message);
+    }
+}
+
+/**
+ * Loads a font from a file & returns a promise which resolves to a font.
+ * @param url {string} url - The URL of the font file.
+ * @param callback {Promise<ArrayBuffer>}
+ */
+async function loadFromFileAsync(path) {
+    try {
+        var fs = require('fs').promises;
+        var buffer = await fs.readFile(path);
+        return toArrayBuffer(buffer);
+    } catch (err) {
+        throw new Error('Font could not be loaded: ' + err.message);
+    }
+}
+
 // Table Directory Entries //////////////////////////////////////////////
 /**
  * Parses OpenType table entries.
@@ -402,6 +436,25 @@ function load(url, callback, opt) {
         });
     });
 }
+
+/**
+ * Asynchronously load the font from a URL or a filesystem, and returns a Promise that resolves to a font upon completion.
+ * the `font` is a Font object.
+ * @param  {string} url - The URL of the font to load.
+ * @returns {Promise<opentype.Font>}
+ */
+async function loadAsync(url) {
+    try {
+        var isNode = typeof window === 'undefined';
+        var loadFn = isNode ? loadFromFileAsync : loadFromUrlAsync;
+        var arrayBuffer = await loadFn(url);
+        var font = parseBuffer(arrayBuffer);
+        return font;
+    } catch(err) {
+        throw new Error('Font could not be loaded: ' + err);
+    }
+}
+
 
 /**
  * Synchronously load the font from a URL or file.
